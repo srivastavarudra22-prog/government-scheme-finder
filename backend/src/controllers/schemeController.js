@@ -1,5 +1,6 @@
 const { supabase } = require('../config/supabase');
 const { successResponse, errorResponse } = require('../utils/response');
+const { resolveApplicationRedirection } = require('../utils/redirectionHelper');
 
 /**
  * 1. List Schemes with pagination, sorting, and optional high-level filters
@@ -29,7 +30,7 @@ async function listSchemes(req, res) {
     let query = supabase
       .from('schemes')
       .select(
-        'id, title, slug, source_url, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, age_display, caste_category, occupation, education, max_income, is_bpl_only, income_limit_display, area, target_type, description',
+        'id, title, slug, source_url, application_url, application_method, official_website, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, age_display, caste_category, occupation, education, max_income, is_bpl_only, income_limit_display, area, target_type, description',
         { count: 'exact' }
       );
 
@@ -98,7 +99,7 @@ async function searchSchemes(req, res) {
     let query = supabase
       .from('schemes')
       .select(
-        'id, title, slug, source_url, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, age_display, caste_category, occupation, education, income_limit_display, description',
+        'id, title, slug, source_url, application_url, application_method, official_website, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, age_display, caste_category, occupation, education, income_limit_display, description',
         { count: 'exact' }
       );
 
@@ -171,7 +172,7 @@ async function filterEligibility(req, res) {
     let query = supabase
       .from('schemes')
       .select(
-        'id, title, slug, source_url, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, min_age, max_age, age_display, caste_category, occupation, education, max_income, is_bpl_only, income_limit_display, area, target_type, description',
+        'id, title, slug, source_url, application_url, application_method, official_website, govt_tier, ministry, state, primary_category, secondary_categories, benefits, beneficiaries, gender, min_age, max_age, age_display, caste_category, occupation, education, max_income, is_bpl_only, income_limit_display, area, target_type, description',
         { count: 'exact' }
       );
 
@@ -331,6 +332,9 @@ async function getSchemeById(req, res) {
     if (!data) {
       return errorResponse(res, `Scheme with identifier "${id}" was not found`, null, 404);
     }
+
+    // Attach structured official application redirection metadata
+    data.application_redirection = resolveApplicationRedirection(data);
 
     return successResponse(res, data, null, 'Scheme details retrieved successfully');
   } catch (err) {

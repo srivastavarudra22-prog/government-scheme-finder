@@ -40,7 +40,28 @@ async function testDatabaseConnection() {
   }
 }
 
+/**
+ * Creates an authenticated Supabase client for a specific citizen request,
+ * passing their Bearer token for PostgreSQL Row-Level Security (RLS) evaluation.
+ * @param {string} token - User's JWT access token
+ * @returns {import('@supabase/supabase-js').SupabaseClient}
+ */
+function createUserClient(token) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
+
 module.exports = {
   supabase,
+  createUserClient,
   testDatabaseConnection,
 };

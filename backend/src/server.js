@@ -7,6 +7,11 @@ const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandl
 const healthRoutes = require('./routes/healthRoutes');
 const schemeRoutes = require('./routes/schemeRoutes');
 const ragRoutes = require('./routes/ragRoutes');
+const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const savedSchemeRoutes = require('./routes/savedSchemeRoutes');
+const applicationRoutes = require('./routes/applicationRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const { testDatabaseConnection } = require('./config/supabase');
 
 const app = express();
@@ -26,6 +31,21 @@ app.get('/', (req, res) => {
     documentation: {
       health: 'GET /api/health',
       databaseHealth: 'GET /api/health/db',
+      authSignup: 'POST /api/auth/signup',
+      authLogin: 'POST /api/auth/login',
+      authMe: 'GET /api/auth/me (Bearer)',
+      authLogout: 'POST /api/auth/logout (Bearer)',
+      profileGet: 'GET /api/profile (Bearer)',
+      profileUpdate: 'PATCH /api/profile (Bearer)',
+      savedSchemesList: 'GET /api/saved-schemes (Bearer)',
+      savedSchemeSave: 'POST /api/saved-schemes/:schemeId (Bearer)',
+      savedSchemeRemove: 'DELETE /api/saved-schemes/:schemeId (Bearer)',
+      applicationsList: 'GET /api/applications (Bearer)',
+      applicationCreate: 'POST /api/applications (Bearer)',
+      applicationUpdate: 'PATCH /api/applications/:id (Bearer)',
+      applicationDelete: 'DELETE /api/applications/:id (Bearer)',
+      chatSendMessage: 'POST /api/chat/message (Bearer)',
+      chatStatus: 'GET /api/chat/status (Bearer)',
       listSchemes: 'GET /api/schemes?page=1&limit=20',
       searchSchemes: 'GET /api/schemes/search?q=scholarship',
       filterEligibility: 'GET /api/schemes/filter?state=Gujarat&gender=Female&age=25',
@@ -42,6 +62,11 @@ app.get('/', (req, res) => {
 // Mount Routes
 app.use('/api/health', healthRoutes);
 app.use('/health', healthRoutes); // convenience alias
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/saved-schemes', savedSchemeRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/rag', ragRoutes);
 
