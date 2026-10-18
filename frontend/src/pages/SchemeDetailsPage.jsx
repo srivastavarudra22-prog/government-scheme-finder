@@ -33,10 +33,12 @@ import {
   MessageSquare, 
   Loader2, 
   FileText,
-  Info
+  Info,
+  Scale
 } from 'lucide-react';
 import { api } from '../services/api';
 import { resolveApplicationRedirection } from '../utils/redirectionHelper';
+import CompareModal from '../components/CompareModal';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -60,6 +62,9 @@ export default function SchemeDetailsPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+
+  // Compare Modal state
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -689,6 +694,17 @@ export default function SchemeDetailsPage() {
                     <span>Track My Application</span>
                   </Link>
 
+                  {/* Compare with Another Scheme Action */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCompareOpen(true)}
+                    className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold transition"
+                    title="Compare this scheme side-by-side with another scheme"
+                  >
+                    <Scale className="w-4 h-4 text-emerald-600" />
+                    <span>Compare with Another Scheme</span>
+                  </button>
+
                   {/* Tertiary Action: Ask AI Assistant */}
                   <Link
                     to={`/chat?schemeId=${scheme.id}&schemeName=${encodeURIComponent(scheme.scheme_name || scheme.title || '')}`}
@@ -707,6 +723,15 @@ export default function SchemeDetailsPage() {
           </div>
 
         </div>
+      )}
+
+      {/* Side-by-Side Scheme Comparison Modal */}
+      {scheme && (
+        <CompareModal
+          isOpen={isCompareOpen}
+          onClose={() => setIsCompareOpen(false)}
+          currentScheme={scheme}
+        />
       )}
 
     </div>
