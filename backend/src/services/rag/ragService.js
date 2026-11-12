@@ -125,11 +125,27 @@ class RagServiceStub extends RagServiceInterface {
   }
 }
 
-// Export singleton instance of the stub
-const ragService = new RagServiceStub();
-
+// Export base classes first so circular requires (e.g. geminiRagService) see RagServiceInterface
 module.exports = {
   RagServiceInterface,
   RagServiceStub,
-  ragService,
 };
+
+// ─── Factory: returns real GeminiRagService or stub depending on .env ─────────
+function createRagService() {
+  const provider = (process.env.RAG_PROVIDER || 'none').toLowerCase();
+  if (provider === 'gemini') {
+    try {
+      const { GeminiRagService } = require('./geminiRagService');
+      const service = new GeminiRagService();
+      console.log('[RAG] GeminiRagService activated (pgvector + Gemini embeddings).');
+      return service;
+    } catch (err) {
+      console.error('[RAG] Failed to initialize GeminiRagService, falling back to stub:', err.message);
+    }
+  }
+  console.log('[RAG] Using RagServiceStub. Set RAG_PROVIDER=gemini in .env to activate.');
+  return new RagServiceStub();
+}
+
+module.exports.ragService = createRagService();

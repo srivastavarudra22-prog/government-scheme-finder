@@ -109,16 +109,41 @@ export default function ChatAssistantPage() {
     setLoading(true);
 
     try {
-      // Backend POST /api/chat/message returns 200 with status: 'NOT_IMPLEMENTED'
-      const response = await api.chat.sendMessage({ message: text });
+      // Backend POST /api/chat/message — returns live RAG answer when RAG_PROVIDER=gemini
+      const response = await api.chat.sendMessage({
+        message: text,
+        context: {
+          profile: profile
+            ? {
+                age: profile.age,
+                gender: profile.gender,
+                state: profile.state,
+                occupation: profile.occupation,
+                education: profile.education,
+                caste_category: profile.caste_category,
+                income: profile.annual_income,
+                area: profile.area,
+              }
+            : {},
+          history: messages.slice(-6).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        },
+      });
+
+      const isLive = response.status === 'OK' && response.data?.isReady;
 
       const assistantMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: response.message || 'AI assistant is not connected yet.',
-        notice: response.notice || 'Development placeholder: AI/RAG system is not connected yet. Dataset grounding will be enabled in the upcoming RAG integration task.',
-        echo: response.data?.echo || text,
-        isPlaceholder: true,
+        content: response.data?.answer || response.message || 'AI assistant is not connected yet.',
+        sources: response.data?.sources || [],
+        confidence: response.data?.confidence || null,
+        notice: !isLive
+          ? (response.data?.hint || 'Development placeholder: RAG system is being set up.')
+          : null,
+        isPlaceholder: !isLive,
         timestamp: new Date().toISOString(),
       };
 

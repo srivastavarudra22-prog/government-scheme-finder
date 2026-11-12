@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, User, Copy, Check, AlertCircle, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sparkles, User, Copy, Check, AlertCircle, Info, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
  * Formats ISO or Date timestamp to user-friendly local time
@@ -12,11 +13,58 @@ function formatTime(timestamp) {
     : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Confidence badge with colour coding
+ */
+function ConfidenceBadge({ confidence }) {
+  if (!confidence) return null;
+  const styles = {
+    high: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    medium: 'bg-amber-50 text-amber-700 border-amber-200',
+    low: 'bg-slate-50 text-slate-500 border-slate-200',
+  };
+  const labels = { high: '● High confidence', medium: '◑ Medium confidence', low: '○ Low confidence' };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${styles[confidence] || styles.low}`}>
+      {labels[confidence] || confidence}
+    </span>
+  );
+}
+
+/**
+ * Renders markdown-lite: **bold**, bullet lists, line breaks
+ */
+function AnswerText({ text }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1">
+      {lines.map((line, i) => {
+        // Bold (**text**)
+        const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('• ');
+        if (isBullet) {
+          return (
+            <div key={i} className="flex gap-2 items-start">
+              <span className="text-emerald-500 mt-0.5 shrink-0">•</span>
+              <span dangerouslySetInnerHTML={{ __html: formatted.replace(/^[-•]\s*/, '') }} />
+            </div>
+          );
+        }
+        if (line.trim() === '') return <div key={i} className="h-2" />;
+        return <p key={i} dangerouslySetInnerHTML={{ __html: formatted }} />;
+      })}
+    </div>
+  );
+}
+
 export default function ChatMessageItem({ message, userInitials }) {
   const [copied, setCopied] = useState(false);
+  const [sourcesExpanded, setSourcesExpanded] = useState(true);
 
   const isUser = message.role === 'user';
   const isError = message.role === 'error';
+  const hasSources = message.sources && message.sources.length > 0;
 
   async function handleCopy() {
     try {
@@ -64,7 +112,7 @@ export default function ChatMessageItem({ message, userInitials }) {
     );
   }
 
-  // Assistant message
+  // ── Assistant message (placeholder or live RAG) ───────────────────────────
   return (
     <div className="flex justify-start items-start gap-2.5 mb-4 group">
       <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
@@ -73,7 +121,8 @@ export default function ChatMessageItem({ message, userInitials }) {
 
       <div className="flex flex-col items-start max-w-[85%] sm:max-w-2xl">
         <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-4 py-3.5 shadow-xs text-slate-800 text-sm leading-relaxed">
-          {/* Development placeholder indicator */}
+
+          {/* Development placeholder badge (shown when RAG not yet live) */}
           {message.isPlaceholder && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 mb-2.5">
               <Info className="w-3.5 h-3.5 text-amber-600" />
@@ -81,23 +130,74 @@ export default function ChatMessageItem({ message, userInitials }) {
             </div>
           )}
 
-          {/* Primary message text */}
+          {/* Confidence badge (shown when RAG is live) */}
+          {!message.isPlaceholder && message.confidence && (
+            <div className="mb-2.5">
+              <ConfidenceBadge confidence={message.confidence} />
+            </div>
+          )}
+
+          {/* Primary answer text with markdown-lite rendering */}
           <div className="whitespace-pre-wrap break-words text-slate-800 font-normal">
-            {message.content}
+            {!message.isPlaceholder
+              ? <AnswerText text={message.content} />
+              : message.content
+            }
           </div>
 
-          {/* Notice callout */}
+          {/* Notice callout (placeholder/setup messages) */}
           {message.notice && (
             <div className="mt-3 p-3 bg-slate-50 border-l-2 border-emerald-500 rounded-r-lg text-xs text-slate-600 leading-relaxed">
-              <span className="font-semibold text-slate-700 block mb-0.5">Architecture Notice:</span>
+              <span className="font-semibold text-slate-700 block mb-0.5">Notice:</span>
               {message.notice}
             </div>
           )}
 
-          {/* Echo of citizen query if available */}
-          {message.echo && (
-            <div className="mt-2 text-[11px] text-slate-400 font-mono">
-              Prompt acknowledged: &quot;{message.echo}&quot;
+          {/* ── RAG Source Citations ──────────────────────────────────────── */}
+          {hasSources && (
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSourcesExpanded((v) => !v)}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-700 transition mb-2"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Sources ({message.sources.length} schemes)</span>
+                {sourcesExpanded
+                  ? <ChevronUp className="w-3 h-3" />
+                  : <ChevronDown className="w-3 h-3" />
+                }
+              </button>
+
+              {sourcesExpanded && (
+                <div className="space-y-1.5">
+                  {message.sources.map((src) => (
+                    <div key={src.schemeId} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-emerald-50/60 border border-emerald-100 rounded-lg group/src">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
+                          #{src.schemeId}
+                        </span>
+                        <span className="text-xs text-slate-700 truncate font-medium">
+                          {src.schemeName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {src.similarity && (
+                          <span className="text-[10px] text-slate-400 hidden sm:block">
+                            {(src.similarity * 100).toFixed(0)}% match
+                          </span>
+                        )}
+                        <Link
+                          to={`/schemes/${src.schemeId}`}
+                          className="inline-flex items-center gap-0.5 text-[11px] text-emerald-700 hover:text-emerald-900 font-medium hover:underline"
+                        >
+                          View <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

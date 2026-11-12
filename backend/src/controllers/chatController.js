@@ -11,6 +11,7 @@
  */
 
 const { chatService } = require('../services/chatService');
+const { ragService } = require('../services/rag/ragService');
 const { errorResponse } = require('../utils/response');
 
 /**
@@ -41,23 +42,47 @@ async function sendMessage(req, res) {
       });
     }
 
-    // Call chatService with verified citizen ID from token
-    const result = await chatService.processMessage({
-      userId: req.user.id,
-      message: trimmed,
-      context: req.body.context || {},
-    });
+    // Extract optional citizen profile from request context
+    const citizenProfile = req.body.context?.profile || {};
 
-    // Return structured response indicating AI/RAG is not yet connected
-    // (Per prompt: status: "NOT_IMPLEMENTED", message: "AI assistant is not connected yet.")
+    // Extract conversation history for multi-turn context
+    const conversationHistory = req.body.context?.history || [];
+
+    // Check if RAG is live
+    const ragStatus = await ragService.getStatus();
+
+    if (ragStatus.isReady) {
+      // ── Live RAG Path ────────────────────────────────────────────────────────
+      const ragResult = await ragService.askQuestion({
+        query: trimmed,
+        citizenProfile,
+        topK: 10,
+        conversationHistory,
+      });
+
+      return res.status(200).json({
+        success: true,
+        status: 'OK',
+        message: 'Response generated from verified government scheme catalog.',
+        data: {
+          answer: ragResult.answer,
+          sources: ragResult.sources || [],
+          confidence: ragResult.confidence || 'medium',
+          isReady: true,
+          connected: true,
+        },
+      });
+    }
+
+    // ── Fallback: RAG not yet ingested — return helpful stub ─────────────────
     return res.status(200).json({
       success: false,
       status: 'NOT_IMPLEMENTED',
-      message: 'AI assistant is not connected yet.',
-      notice: result.notice,
+      message: 'AI assistant is being set up. Please run the ingestion script first.',
       data: {
         echo: trimmed,
         connected: false,
+        hint: 'Run: node backend/scripts/ingest-rag.js to populate the vector database.',
       },
     });
   } catch (err) {

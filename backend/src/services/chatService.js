@@ -46,11 +46,17 @@ class ChatService {
    * @returns {Promise<{ available: boolean, model: string|null, ragConnected: boolean }>}
    */
   async getStatus() {
+    const provider = (process.env.RAG_PROVIDER || 'none').toLowerCase();
+    const isGemini = provider === 'gemini';
     return {
-      available: false,
-      ragConnected: false,
-      model: null,
-      message: 'AI Chat Assistant service is in pre-integration phase. RAG grounding is not connected.',
+      available: isGemini,
+      ragConnected: isGemini,
+      model: isGemini ? (process.env.GEMINI_CHAT_MODEL || 'gemini-1.5-flash') : null,
+      embeddingModel: isGemini ? (process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004') : null,
+      vectorStore: isGemini ? 'pgvector' : null,
+      message: isGemini
+        ? 'RAG Chat Assistant is active with Gemini + pgvector.'
+        : 'AI Chat Assistant is in pre-integration phase. Set RAG_PROVIDER=gemini in .env.',
     };
   }
 }
