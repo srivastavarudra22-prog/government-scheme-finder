@@ -40,6 +40,10 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!res.ok) {
+    if (res.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/signup')) {
+      localStorage.removeItem('token');
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
     const error = new Error(data.message || `Request failed with status ${res.status}`);
     error.status = res.status;
     error.data = data;

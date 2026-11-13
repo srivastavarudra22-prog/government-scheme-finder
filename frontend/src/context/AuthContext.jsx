@@ -64,8 +64,18 @@ export function AuthProvider({ children }) {
 
     initAuth();
 
+    const handleUnauthorized = () => {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      setProfile(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, []);
 

@@ -15,9 +15,9 @@ export default function ChatHeader({ onClear, messageCount, ragStatus }) {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">AI Assistant</h2>
-            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200/80" title="RAG dataset pipeline is not connected yet">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" />
-              Pre-integration Mode
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80" title="RAG Knowledge Base Active (4,732 schemes)">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+              RAG Active (4,732 Schemes)
             </span>
           </div>
           <p className="text-xs text-slate-500 hidden sm:block">
